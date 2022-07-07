@@ -3,37 +3,34 @@
         <div id="app">
             <div style="display: flex; justify-content: flex-start">
                 <ul>
-                    <li v-for="(menu, index) in menuItems" :key="index"
-                        class="menu--none" :class="{selected: menu === selectedItem}"
+                    <li v-for="(menu, index) in menuList" :key="index"
+                        class="menu--none" :class="{selected: menu === selectedItem,
+                        level_1: menu.level === 1, level_2: menu.level === 2, level_3: menu.level === 3}"
                         @click="selected(menu)">
-                        <span>menu : {{ menu.data }}  level : {{ menu.level }}</span>
+                        <span>menu : {{ menu.data }}</span>
                     </li>
 
                 </ul>
                 <button style="height: 40px; width: 100px"
-                        @click="addMenu()" :disabled="!selectedItem">해당 위치에 메뉴 추가
+                        @click="addMenu()" :disabled="!selectedItem">메뉴 추가
                 </button>
                 <button style="height: 40px; width: 100px"
-                        @click="deleteMenu(selectedItem)" :disabled="!selectedItem">메뉴 삭제
+                        @click="deleteMenu()" :disabled="!selectedItem">메뉴 삭제
                 </button>
                 <button style="height: 40px; width: 100px"
-                        @click="moveUp(selectedItem)" :disabled="!canMoveUp()">선택한 메뉴 위로이동
+                        @click="moveUp()" :disabled="!canMoveUp(selectedItem)">선택한 메뉴 위로이동
                 </button>
                 <button style="height: 40px; width: 100px"
-                        @click="moveDown()" :disabled="!canMoveDown()">선택한 메뉴 아래로이동
+                        @click="moveDown()" :disabled="!canMoveDown(selectedItem)">선택한 메뉴 아래로이동
                 </button>
             </div>
         </div>
-        <!--        <tree-data></tree-data>-->
     </div>
 </template>
 
 <script>
-// import TreeData from "@/components/treeData";
-
 export default {
     name: 'App',
-    // components: {TreeData},
     data() {
         return {
             sample: {
@@ -70,42 +67,8 @@ export default {
             selectedItem: null,
         }
     },
-
-
-    computed: {
-        menuItems() {
-            return this.menuList || [];
-        },
-
-    },
     mounted() {
         this.getMenu();
-    },
-
-    watch: {
-        menuItems: {
-            deep: true,
-            immediate: true,
-            handler(value) {
-                console.log('menuItems: ', value);
-                // if (value.length === 0) this.getMenu();
-            }
-        },
-        selectedItem: {
-            handler(value) {
-                console.log('selected : ', value)
-            }
-        },
-        menuList: {
-            deep: true,
-            immediate: true,
-            handler(value) {
-                console.log('menuList: ', value);
-                // if (value.length === 0) {
-                //     this.getMenu();
-                // }
-            }
-        },
     },
     methods: {
         /**
@@ -113,13 +76,13 @@ export default {
          */
         getMenu() {
             this.menuList = [];
-            this.convert(this.sample, 0);
+            this.treeToList(this.sample, 0);
         },
 
         /**
          * 메뉴 Tree to List
          */
-        convert(node, level) {
+        treeToList(node, level) {
             if (!node.level) {
                 node.level = level;
             }
@@ -128,126 +91,136 @@ export default {
                 this.menuList.push(node);
                 node.children.forEach(item => {
                     item.parent = node;
-                    this.convert(item, level + 1);
+                    this.treeToList(item, level + 1);
                 })
             } else {
                 this.menuList.push(node);
             }
         },
 
-
         /**
          * 메뉴 클릭 시
          */
         selected(menu) {
             this.selectedItem = menu;
+            console.log(menu);
         },
-
 
         /**
          * 메뉴 추가 ,삭제
          */
         addMenu() {
             const item = this.selectedItem;
-            const index = this.menuList.indexOf(item);
-            const newMenuName = prompt('새로운 메뉴 이름: ', 'default');
-            const newMenu = {data: newMenuName, level: item.level + 1, parent: item};
+            const newMenu = {data: 'new', level: item.level + 1};
 
-            if (!newMenuName) {
-                return false;
+            if (!item.children) {
+                item.children = [];
             }
 
-            this.menuList.splice(index + 1, 0, newMenu);
-            this.selectedItem = newMenu;
-
-
+            item.children.splice(0, 0, newMenu);
+            this.getMenu();
         },
 
-        deleteMenu(node) {
-            const index = this.menuList.indexOf(node);
-            if (index < 0) {
-                return false;
-            }
+        deleteMenu() {
+            const item = this.selectedItem;
 
-            if (node.children) {
-                this.menuList.splice(index, 1);
-                this.selectedItem = null;
-                node.children.forEach(item => {
-                    this.deleteMenu(item);
-                })
+            if (item && item.parent) {
+                const parent = item.parent;
+                const siblings = parent.children;
+                const index = siblings.indexOf(item);
+
+                siblings.splice(index, 1);
+                this.getMenu();
             } else {
-                this.menuList.splice(index, 1);
-                this.selectedItem = null;
+                this.sample = {};
+                this.getMenu();
             }
+            this.selectedItem = null;
+        },
+        /**
+         *
+         */
+        getAncestors(node){
 
         },
+        getParent(node){
+            return ''
+        },
+        getChildren(node){
+
+        },
+        getNodeLevel(node){
+            //부모부터 자기까지
+        },
+        getNodeDepth(node){
+            //순서바뀌고, 부모, 자식도 바뀜
+            // 자기부터 0 자식 1,2,3,4.....
+        },
+
+        getSiblings(node){
+            const parent = this.getParent(node);
+            const children = this.getChildren(parent);
+            const index = children.indexOf(node);
+            return children.splice(index, 1);
+        },
+        addNode(parent, node, index){
+
+        },
+        removeNode(parent, node){
+
+        },
+        moveNode(node, toParent, insertIndex){
+            this.removeNode(parent, node);
+            this.addNode(toParent, node, insertIndex);
+        },
+
 
         /**
          * 메뉴 위,아래 이동
          */
+        moveUp() {
+            const item = this.selectedItem;
+            const parent = item.parent;
+            const siblings = parent.children;
+            const index = siblings.indexOf(item);
 
-        moveUp(node) {
-            const list = this.menuList;
-            const index = list.indexOf(node);
-
-            if (node.children) {
-                list.splice(index, 1);
-                list.splice(index - 1, 0, node);
-                node.children.forEach(item => {
-                    this.moveUp(item);
-                })
-            } else {
-                list.splice(index, 1);
-                list.splice(index - 1, 0, node);
-            }
-
-
+            siblings.splice(index, 1);
+            siblings.splice(index - 1, 0, item);
+            this.getMenu();
         },
 
-        canMoveUp() {
-            const item = this.selectedItem;
+        canMoveUp(item) {
             if (item && item.parent) {
                 const parent = item.parent;
-                const itemIndex = this.menuList.indexOf(item);
-                const parentIndex = this.menuList.indexOf(parent);
+                const siblings = parent.children;
+                const index = siblings.indexOf(item);
 
-                return item && item.parent && (itemIndex > parentIndex + 1);
-            } else {
-                return false;
+                return index > 0;
             }
-            // const item = this.selectedItem;
-            // const index = this.menuList.indexOf(item);
-            // const prevItem = this.menuList[index - 1];
-            // console.log(item, prevItem);
-
-            // return item && (item.level > prevItem.level);
-
         },
 
         moveDown() {
             const item = this.selectedItem;
-            const list = this.menuList;
-            const index = list.indexOf(item);
+            const parent = item.parent;
+            const siblings = parent.children;
+            const index = siblings.indexOf(item);
 
-            if (this.canMoveDown()) {
-                list.splice(index, 1);
-                list.splice(index + 1, 0, item);
-            }
+            siblings.splice(index, 1);
+            siblings.splice(index + 1, 0, item);
 
+            this.getMenu();
         },
 
-        canMoveDown() {
-            const item = this.selectedItem;
-            const list = this.menuList;
-            const index = list.indexOf(item);
+        canMoveDown(item) {
+            if (item && item.parent) {
+                const parent = item.parent;
+                const siblings = parent.children;
+                const index = siblings.indexOf(item);
 
-            return item && (index < list.length - 1);
+                return index < siblings.length - 1;
+            }
         }
-
-
     },
-
-
 }
 </script>
 
@@ -273,4 +246,15 @@ li {
     border-radius: 5px;
 }
 
+.level_1 {
+    margin-left: 30px;
+}
+
+.level_2 {
+    margin-left: 60px;
+}
+
+.level_3 {
+    margin-left: 90px;
+}
 </style>
