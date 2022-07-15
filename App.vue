@@ -5,20 +5,26 @@
                 <ul>
                     <li v-for="(menu, index) in menuList" :key="index"
                         class="menu--none" :class="{selected: menu === selectedItem,
-                        level_1: menu.level === 1, level_2: menu.level === 2, level_3: menu.level === 3}"
+                        level_1: menu.level === 1, level_2: menu.level === 2, level_3: menu.level === 3, level_4: menu.level === 4}"
                         @click="selected(menu)">
                         <span>menu : {{ menu.data }}</span>
                     </li>
                 </ul>
-                <!--                <button style="height: 40px; width: 100px"-->
-                <!--                        @click="addNode(this.selectedItem, this.newData, 0)">아래에 메뉴 추가-->
-                <!--                </button>-->
+                <button style="height: 40px; width: 100px" :disabled="!selectedItem"
+                        @click="addNode( newData, selectedItem, 0)">아래에 메뉴 추가
+                </button>
                 <button style="height: 40px; width: 100px"
                         @click="removeNode(selectedItem)" :disabled="!selectedItem">메뉴 삭제
                 </button>
                 <!--                <button style="height: 40px; width: 100px"-->
-                <!--                        @click="moveUp()" :disabled="!canMoveUp(selectedItem)">선택한 메뉴 위로이동-->
+                <!--                        @click="moveNode(selectedItem, )" :disabled="!selectedItem">메뉴 이동-->
                 <!--                </button>-->
+                <button style="height: 40px; width: 100px"
+                        @click="moveUp(selectedItem)" :disabled="!canMoveUp(selectedItem)">선택한 메뉴 위로이동
+                </button>
+                <button style="height: 40px; width: 100px"
+                        @click="moveToTarget(selectedItem)">1-1 밑으로 이동
+                </button>
                 <!--                <button style="height: 40px; width: 100px"-->
                 <!--                        @click="moveDown()" :disabled="!canMoveDown(selectedItem)">선택한 메뉴 아래로이동-->
                 <!--                </button>-->
@@ -119,7 +125,8 @@ export default {
             node.level = this.getNodeLevel(node);
             list.push(node);
 
-            const children = node.children;
+            // const children = node.children;
+            const children = this.getChildren(node);
             if (Array.isArray(children)) {
                 children.forEach(item => {
                     const result = this.flatten(item);
@@ -129,14 +136,18 @@ export default {
             return list;
         },
 
+
         /**
          * 메뉴 클릭 시
          */
         selected(node) {
             this.selectedItem = node;
+            // console.log(event);
             console.log('select: ', node.data, node);
-            console.log('parent: ', this.getParent(this.treeSampleData, node).data, this.getParent(this.treeSampleData, node));
-            console.log('children : ', this.getChildren(node))
+            console.log('parent: ', this.getParent(this.treeSampleData, node));
+            console.log('parent2: ', this.getParent2(this.treeSampleData, node));
+
+            console.log('children : ', this.getChildren(node));
             console.log('siblings: ', this.getSiblings(node));
             console.log('ancestors: ', this.getAncestors(node));
             console.log('level : ', this.getNodeLevel(node));
@@ -144,20 +155,26 @@ export default {
         },
         //
 
-
+        /**
+         * 부모구하기
+         */
         getParent(root, node) {
-            const children = root.children;
             if (root === node) {
                 return;
             }
 
+            const children = root.children;
             if (Array.isArray(children)) {
                 const check = children.includes(node);
                 if (check) {
+                   // return root;
                     this.parent = root;
                 } else {
                     children.forEach(item => {
-                        this.getParent(item, node);
+                     /*  const result =*/ this.getParent(item, node);
+                      /* if(result){
+                           return result;
+                       }*/
                     })
                 }
             }
@@ -165,6 +182,7 @@ export default {
         },
 
         getAncestors(node) {
+            //while 변경
             let list = [];
             const parent = this.getParent(this.treeSampleData, node);
 
@@ -176,14 +194,48 @@ export default {
             return list;
         },
 
+        /**
+         * 자식구하기
+         */
+
         getChildren(node) {
             const children = node.children;
             if (children) {
                 return children;
             }
-            return [];
 
+            return [];
         },
+
+        /**
+         * 형제 구하기
+         */
+        getSiblings(node) {
+            let list = [];
+            const parent = this.getParent(this.treeSampleData, node);
+            if (!parent) {
+                return list;
+            }
+
+
+            const children = this.getChildren(parent);
+            if (Array.isArray(children)) {
+                //list = [].concat(children)
+                //list = children.slice(0);
+                list = [...children];
+
+                children.forEach(item => {
+                    list.push(item);
+                })
+                const index = list.indexOf(node);
+                list.splice(index, 1);
+            }
+            return list;
+        },
+
+        /**
+         * level, depth 구하기
+         */
         getNodeLevel(node) {
             return this.getAncestors(node).length;
         },
@@ -201,74 +253,100 @@ export default {
             return maxDepth;
         },
 
-        getSiblings(node) {
-            const list = [];
+        /**
+         * add / remove
+         */
+        addNode(node, parent, index) {
+            const children = parent.children;
+            if (!children) {
+              /*  parent.children = [];
+                parent.children.push(node);*/
 
-            const parent = this.getParent(this.treeSampleData, node);
-            if (!parent) {
-                return;
+                parent.children = [node];
+
+                return this.loadMenu();
             }
 
-            const children = this.getChildren(parent);
-            if (Array.isArray(children)) {
-                children.forEach(item => {
-                    list.push(item);
-                })
-                const index = list.indexOf(node);
-                list.splice(index, 1);
-            }
-            return list;
+            children.splice(index, 0, node);
+            return this.loadMenu();
+
         },
 
-        // addNode(parent, node, index) {
-        //     const children = parent.children;
-        //
-        //     if (!children) {
-        //         parent.children = [];
-        //         parent.children.push(node);
-        //     }
-        //
-        //     children.splice(index, 0, node);
-        //     return this.loadMenu();
-        // },
-        // addNode(node, index) {
-        //
-        // },
-
-
-        // removeNode(parent, node) {
-        //
-        //     return
-        // },
 
         removeNode(node) {
             const parent = this.getParent(this.treeSampleData, node);
             const children = this.getChildren(parent);
-
-            if (Array.isArray(children)) {
-                const index = children.indexOf(node);
-                children.splice(index, 1);
-            }
+            const index = children.indexOf(node);
+            children.splice(index, 1);
             return this.loadMenu();
         },
 
-
-        // moveNode(node, toParent, insertIndex) {
-        //     this.removeNode(parent, node);
-        //     this.addNode(toParent, node, insertIndex);
-        // },
-        //
-        //
         /**
-         * 메뉴 위,아래 이동
+         *  메뉴 이동
          */
-        // moveUp() {
+        moveNode(node, toParent, insertIndex) {
+            this.removeNode(node);
+            this.addNode(node, toParent, insertIndex);
+        },
         //
-        // },
         //
-        // canMoveUp(item) {
+
+        moveUp(node) {
+            const toParent = this.getParent(this.treeSampleData, node)
+            const children = this.getChildren(toParent);
+            const insertIndex = children.indexOf(node) - 1;
+            this.moveNode(node, toParent, insertIndex);
+
+        },
         //
-        // },
+        canMoveUp(node) {
+            if (node === this.treeSampleData) {
+                return false;
+            }
+            const parent = this.getParent(this.treeSampleData, node)
+            const children = this.getChildren(parent);
+            const index = children.indexOf(node);
+
+            return index > 0;
+        },
+
+        /**
+         * 원하는 위치로 이동 (예제, 1-1 하위 메뉴로 이동)
+         */
+
+        getTarget(root) {
+            let target = {};
+
+            if (root.data === '1-1') {
+                target = root;
+            }
+
+            const children = root.children;
+            if (Array.isArray(children)) {
+                target = children.filter(item => item.data === '1-1');
+                if (target) {
+                    return target[0];
+                } else {
+                    children.forEach(item => {
+                        this.getTarget(item);
+                    })
+                }
+            }
+            return target;
+        },
+
+        moveToTarget(node) {
+            const parentTo = this.getTarget(this.treeSampleData);
+
+            if(this.removeNode(node)){
+                this.loadMenu();
+            }
+
+            if(this.addNode(node, parentTo, 0)){
+                this.loadMenu();
+            }
+        }
+
         //
         // moveDown() {
         //
@@ -313,5 +391,9 @@ li {
 
 .level_3 {
     margin-left: 90px;
+}
+
+.level_4 {
+    margin-left: 120px;
 }
 </style>
