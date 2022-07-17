@@ -137,12 +137,12 @@ export default {
     selected(node) {
       this.selectedItem = node;
       // console.log(event);
-      // console.log('parent2: ', this.getParent2(node));
+      console.log('parent2: ', this.getParent2(node));
       // console.log('select: ', node.data, node);
       // console.log('parent: ', this.getParent(this.treeSampleData, node));
       // console.log('children : ', this.getChildren(node));
-      console.log('siblings: ', this.getSiblings(node));
-      console.log('ancestors: ', this.getAncestors(node));
+      // console.log('siblings: ', this.getSiblings(node));
+      // console.log('ancestors: ', this.getAncestors(node));
       // console.log('level : ', this.getNodeLevel(node));
       // console.log('depth : ', this.getNodeDepth(node));
     },
@@ -172,32 +172,54 @@ export default {
       }
       return this.parent;
     },
+
     getParent2(node) {
-      if (node === this.treeSampleData) {
+      const root = this.treeSampleData;
+      if (node === root) {
+        return {};
+      }
+      return this.getParent(root, node);
+    },
+
+    getFather(node) {
+      const root = this.treeSampleData;
+      if (node === root) {
         return {};
       }
 
-      let parent = {};
+      let rootChildren = this.getChildren(root);
+      let target = rootChildren.find(item => item.data === node.data);
+      let empty = {};
+      let parentId = ''
 
-      let root = this.treeSampleData;
-      const children = this.getChildren(root);
-      if (children) {
-        const check = children.includes(node);
-        if (check) {
-          return root;
-        } else { // 첫 바퀴에 선택된 녀석이 포함이 안되어있으면???
-          children.forEach(item => { // 그 아래놈들이 돌아야되는데
-            parent = item;
-            const result = this.getParent2(node);
-            if (result) {
-              return result;
-            }
-          })
-        }
+      if (target) {
+        // root 0level
+        // target 1level
+        // target 이 node 같은 레벨 경우니
+        return root;
+      } else {
+
+        empty = this.test(rootChildren, node)
+        console.log(empty)
+        // console.log(parentId)
       }
-      return parent;
+
     },
 
+    test(rootChildren = [], node) {
+      let target = {}
+      rootChildren.forEach(item => {
+        let target = item.data === node.data;
+        if (target) {
+          console.log(rootChildren)
+          target = item;
+        } else {
+          console.log(item)
+          if (item.children) this.test(item.children, node)
+        }
+      })
+      return target;
+    },
 
     // getAncestors(node) {
     //   //while 변경
@@ -277,6 +299,7 @@ export default {
     getNodeLevel(node) {
       return this.getAncestors(node).length;
     },
+
     getNodeDepth(node) {
       let maxDepth = 0;
       const children = this.getChildren(node);
